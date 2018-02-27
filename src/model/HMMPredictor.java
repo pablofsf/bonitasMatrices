@@ -23,18 +23,93 @@ public class HMMPredictor implements EstimatorInterface {
 	private int mapT(int row, int col, int head){
 		return col*4 + row*col*4 + head;
 	}
+	
+	private int moveNorth(int row, int col){
+		return col*4 + (row+1)*col*4;
+	}
+	private int moveEast(int row, int col){
+		return (col+1)*4 + row*col*4 + 1;
+	}
+	private int moveSouth(int row, int col){
+		return col*4 + (row-1)*col*4 + 2;
+	}
+	private int moveWest(int row, int col){
+		return (col-1)*4 + row*col*4 + 3;
+	}
+	private int faceNorth(int row, int col){
+		return col*4 + row*col*4;
+	}
+	private int faceEast(int row, int col){
+		return col*4 + row*col*4 + 1;
+	}
+	private int faceSouth(int row, int col){
+		return col*4 + row*col*4 + 2;
+	}
+	private int faceWest(int row, int col){
+		return col*4 + row*col*4 + 3;
+	}
+	
 	private void generateT(double[][] T){
-		double[][] cornerAux = new double[head][rows*cols*head];
+		//double[][] cornerAux = new double[head][rows*cols*head];
 		double[] row = new double[rows*cols*head];
 		
 		for(int i  = 0; i < rows; i++){	
 			for(int j = 0; j < cols; j++){
+				row = new double[rows*cols*head];
+				//Left top corner
 				if(i == 0 && j == 0){
-					row[mapT(0,1,1)] = row[mapT(1,0,2)] = 0.5;
-					T[mapT(i,j,0)] = T[mapT(i,j,3)] = row;
-				}
-				else if(i == 0 && j == cols - 1 ){
+					//Facing wall
+					row[moveEast(i,j)] = row[moveSouth(i,j)] = 0.5;
+					T[faceNorth(i,j)] = T[faceWest(i,j)] = row;
+					//Facing not wall
 					
+					row[moveEast(i,j)] = 0.3;
+					row[moveSouth(i,j)] = 0.7;
+					T[faceSouth(i,j)] = row;
+					
+					row[moveSouth(i,j)] = 0.3;
+					row[moveEast(i,j)] = 0.7;
+					T[faceEast(i,j)] = row;
+				}
+				else 
+				//Right top corner
+				if(i == 0 && j == cols - 1 ){
+					row[moveSouth(i,j)] = row[moveWest(i,j)] = 0.5;
+					T[faceNorth(i,j)] = T[faceEast(i,j)] = row;
+					
+					row[moveWest(i,j)] = 0.7;
+					row[moveSouth(i,j)] = 0.3;
+					T[faceWest(i,j)] = row;
+					
+					row[moveWest(i,j)] = 0.3;
+					row[moveSouth(i,j)] = 0.7;
+					T[faceSouth(i,j)] = row;
+				}
+				else
+				if(i == rows - 1 && j == 0){
+					row[moveEast(i,j)] = row[moveNorth(i,j)] = 0.5;
+					T[faceSouth(i,j)] = T[faceWest(i,j)] = row;
+					
+					row[moveEast(i,j)] = 0.3;
+					row[moveNorth(i,j)] = 0.7;
+					T[faceNorth(i,j)] = row;
+					
+					row[moveNorth(i,j)] = 0.3;
+					row[moveEast(i,j)] = 0.7;
+					T[faceEast(i,j)] = row;
+				}
+				else
+				if(i == rows - 1 && j == cols - 1){
+					row[moveWest(i,j)] = row[moveNorth(i,j)] = 0.5;
+					T[faceSouth(i,j)] = T[faceEast(i,j)] = row;
+					
+					row[moveWest(i,j)] = 0.3;
+					row[moveNorth(i,j)] = 0.7;
+					T[faceNorth(i,j)] = row;
+					
+					row[moveNorth(i,j)] = 0.3;
+					row[moveWest(i,j)] = 0.7;
+					T[faceWest(i,j)] = row;
 				}
 			}
 		}
@@ -117,8 +192,7 @@ public class HMMPredictor implements EstimatorInterface {
 	 */	
 	@Override
 	public double getTProb(int x, int y, int h, int nX, int nY, int nH) {
-		// TODO Auto-generated method stub
-		return 0;
+		return T[mapT(x,y,h)][mapT(nX,nY,nH)];
 	}
 
 }
