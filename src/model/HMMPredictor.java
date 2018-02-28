@@ -1,6 +1,7 @@
 package model;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Random;
@@ -12,7 +13,7 @@ import control.EstimatorInterface;
 public class HMMPredictor implements EstimatorInterface {
 
 	private int rows,cols,head;
-	private double[][] T,O;
+	private double[] f,T[],O[];
 	int[] pos;
 	int[] sens;
 	Random random;
@@ -28,6 +29,9 @@ public class HMMPredictor implements EstimatorInterface {
 		O = new double[rows*cols +1][rows*cols*head];
 		generateT(T);
 		generateOs(O);
+		
+		f = new double[rows*cols*head];
+		Arrays.fill(f,1/(rows*cols));
 		
         random = new Random();
         sens = new int[2];
@@ -388,6 +392,33 @@ public class HMMPredictor implements EstimatorInterface {
         chosenRead = posReading.get(Math.max(0,i-1));
         sens = chosenRead.getPos();
 	}
+	
+	private void posEstimate(){
+		//What we need to do is ft+1 = O*T'*ft;
+		double[] currentO = O[mapO(sens[0],sens[1])], newf = new double[rows*cols*head];
+		double[][] OT = new double[rows*cols*head][rows*cols*head];
+		double sum, sumf = 0, alpha;
+		
+		for(int i = 0; i < rows*cols*head; i++){
+			for(int j = 0; j < rows*cols*head; j++){
+				OT[i][j] = T[j][i]*currentO[i];
+			}
+		}
+		
+		for(int i = 0; i < rows*cols*head; i++){
+			sum = 0;
+			for(int j = 0; j < rows*cols*head; j++){
+				sum += OT[i][j]*f[j];
+			}
+			sumf += newf[i] = sum;
+		}
+		
+		//Corrrect f values
+		alpha = 1/sumf;
+		for(int i = 0; i < rows*cols*head; i++){
+			f[i] = alpha*newf[i];
+		}
+	}
 	/*
 	 * should trigger one step of the estimation, i.e., true position, sensor reading and 
 	 * the probability distribution for the position estimate should be updated one step
@@ -395,7 +426,6 @@ public class HMMPredictor implements EstimatorInterface {
 	 */
 	@Override
 	public void update() {
-		// TODO Auto-generated method stub
 		move();
 		getSensorReading();
 		posEstimate();
@@ -431,8 +461,12 @@ public class HMMPredictor implements EstimatorInterface {
 	 */
 	@Override
 	public double getCurrentProb(int x, int y) {
-		// TODO Auto-generated method stub
-		return 0;
+		double probability = 0;
+		
+		for(int h = 0; h < head; h++){
+			probability += f[mapT(x,y,h)];
+		}
+		return probability;
 	}
 
 	/*
