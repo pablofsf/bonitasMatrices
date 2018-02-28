@@ -1,8 +1,9 @@
 package model;
 
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 import java.util.stream.Collectors;
 import java.util.stream.DoubleStream;
 
@@ -12,16 +13,27 @@ public class HMMPredictor implements EstimatorInterface {
 
 	private int rows,cols,head;
 	private double[][] T,O;
+	int[] pos;
+	Random random;
+	
 	public HMMPredictor(int rows, int cols){
 		this.rows = rows;
 		this.cols = cols;
 		this.head = 4;
+		
 		T = new double[rows*cols*head][rows*cols*head];
 		//Each of the Os matrices is represented by an array [rows*cols*head].
 		//As we have [rows*cols +1] Os, we store the info in a matrix.
 		O = new double[rows*cols +1][rows*cols*head];
 		generateT(T);
 		generateOs(O);
+		
+        random = new Random();
+		pos = new int[3];
+		pos[0] = random.nextInt(rows);
+		pos[1] = random.nextInt(cols);
+		pos[2] = random.nextInt(head);
+				
 	}
 	@Override
 	public int getNumRows() {
@@ -71,67 +83,6 @@ public class HMMPredictor implements EstimatorInterface {
 		return mapT(row,col,3);
 	}
 	
-	/*
-	 * if(i == 0){
-					//Left top corner
-					if(j == 0){
-						//Facing wall
-						row[moveEast(i,j)] = row[moveSouth(i,j)] = 0.5;
-						T[faceNorth(i,j)] = T[faceWest(i,j)] = row;
-						//Facing not wall
-						
-						row[moveEast(i,j)] = 0.3;
-						row[moveSouth(i,j)] = 0.7;
-						T[faceSouth(i,j)] = row;
-						
-						row[moveSouth(i,j)] = 0.3;
-						row[moveEast(i,j)] = 0.7;
-						T[faceEast(i,j)] = row;
-					}
-					//Right top corner
-					if(j == cols - 1){
-						row[moveSouth(i,j)] = row[moveWest(i,j)] = 0.5;
-						T[faceNorth(i,j)] = T[faceEast(i,j)] = row;
-						
-						row[moveWest(i,j)] = 0.7;
-						row[moveSouth(i,j)] = 0.3;
-						T[faceWest(i,j)] = row;
-						
-						row[moveWest(i,j)] = 0.3;
-						row[moveSouth(i,j)] = 0.7;
-						T[faceSouth(i,j)] = row;
-					}
-					
-				}
-				else 
-					if(i == rows - 1){
-						//Bottom left corner
-						if(j == 0){
-							row[moveEast(i,j)] = row[moveNorth(i,j)] = 0.5;
-							T[faceSouth(i,j)] = T[faceWest(i,j)] = row;
-							
-							row[moveEast(i,j)] = 0.3;
-							row[moveNorth(i,j)] = 0.7;
-							T[faceNorth(i,j)] = row;
-							
-							row[moveNorth(i,j)] = 0.3;
-							row[moveEast(i,j)] = 0.7;
-							T[faceEast(i,j)] = row;
-						}
-						if(j == cols - 1){
-							row[moveWest(i,j)] = row[moveNorth(i,j)] = 0.5;
-							T[faceSouth(i,j)] = T[faceEast(i,j)] = row;
-							
-							row[moveWest(i,j)] = 0.3;
-							row[moveNorth(i,j)] = 0.7;
-							T[faceNorth(i,j)] = row;
-							
-							row[moveNorth(i,j)] = 0.3;
-							row[moveWest(i,j)] = 0.7;
-							T[faceWest(i,j)] = row;
-						}
-					}
-	 */
 	private void generateCorners(double[][] T){
 		double[] row = new double[rows*cols*head];
 		int i,j;
@@ -378,6 +329,34 @@ public class HMMPredictor implements EstimatorInterface {
 		return this.head;
 	}
 
+	private void move(){
+		double[] moveRow = T[mapT(pos[0],pos[1],pos[2])];
+		Movement choosenMov;
+		ArrayList<Movement> movs = new ArrayList<Movement>();
+		for(int i = 0; i < rows; i++){
+			for(int j = 0; j < cols; j++){
+				for(int h = 0; h < head; h++){
+					if(moveRow[mapT(i,j,h)] != 0){
+						movs.add(new Movement(moveRow[mapT(i,j,h)],i,j,h));
+					}
+				}
+			}
+		}
+		
+//Based on stack overflow code proposal
+	    random = new Random();
+	    int totalSum = 100;
+
+
+        int index = random.nextInt(totalSum);
+        int sum = 0;
+        int i=0;
+        while(sum < index ) {
+             sum = sum + movs.get(i++).relativeProb();
+        }
+        choosenMov = movs.get(Math.max(0,i-1));
+        pos = choosenMov.getPos();
+	}
 	/*
 	 * should trigger one step of the estimation, i.e., true position, sensor reading and 
 	 * the probability distribution for the position estimate should be updated one step
@@ -386,6 +365,9 @@ public class HMMPredictor implements EstimatorInterface {
 	@Override
 	public void update() {
 		// TODO Auto-generated method stub
+		move();
+		getSensorReading();
+		posEstimate();
 
 	}
 
