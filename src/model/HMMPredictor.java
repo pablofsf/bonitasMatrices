@@ -1,6 +1,5 @@
 package model;
 
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -236,8 +235,12 @@ public class HMMPredictor implements EstimatorInterface {
 	 */
 	@Override
 	public double getOrXY(int rX, int rY, int x, int y, int h) {
-		// TODO Auto-generated method stub
-		return 0;
+		if(rX == -1 || rY == -1){
+			return O[rows*cols][mapT(x,y,h)];
+		}
+		else{
+			return O[mapO(rX,rY)][mapT(x,y,h)];
+		}
 	}
 
 	/*
