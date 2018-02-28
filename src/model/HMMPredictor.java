@@ -1,5 +1,6 @@
 package model;
 
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,6 +35,17 @@ public class HMMPredictor implements EstimatorInterface {
 		return col + row*this.cols;
 	}
 	
+	/*private int move(int row, int col, int h){
+		if(h == 0)
+			row = row - 1;//return moveNorth(row,col);
+		if(h == 1)
+			col = col + 1;
+		if(h == 2)
+			row = row + 1;
+		if(h == 3)
+			col = col - 1;
+		return mapT(row,col,h);
+	}*/
 	private int moveNorth(int row, int col){
 		return col*4 + (row-1)*this.cols*4;
 	}
@@ -47,81 +59,265 @@ public class HMMPredictor implements EstimatorInterface {
 		return (col-1)*4 + row*this.cols*4 + 3;
 	}
 	private int faceNorth(int row, int col){
-		return col*4 + row*this.cols*4;
+		return mapT(row,col,0);
 	}
 	private int faceEast(int row, int col){
-		return col*4 + row*this.cols*4 + 1;
+		return mapT(row,col,1);
 	}
 	private int faceSouth(int row, int col){
-		return col*4 + row*this.cols*4 + 2;
+		return mapT(row,col,2);
 	}
 	private int faceWest(int row, int col){
-		return col*4 + row*this.cols*4 + 3;
+		return mapT(row,col,3);
 	}
 	
+	/*
+	 * if(i == 0){
+					//Left top corner
+					if(j == 0){
+						//Facing wall
+						row[moveEast(i,j)] = row[moveSouth(i,j)] = 0.5;
+						T[faceNorth(i,j)] = T[faceWest(i,j)] = row;
+						//Facing not wall
+						
+						row[moveEast(i,j)] = 0.3;
+						row[moveSouth(i,j)] = 0.7;
+						T[faceSouth(i,j)] = row;
+						
+						row[moveSouth(i,j)] = 0.3;
+						row[moveEast(i,j)] = 0.7;
+						T[faceEast(i,j)] = row;
+					}
+					//Right top corner
+					if(j == cols - 1){
+						row[moveSouth(i,j)] = row[moveWest(i,j)] = 0.5;
+						T[faceNorth(i,j)] = T[faceEast(i,j)] = row;
+						
+						row[moveWest(i,j)] = 0.7;
+						row[moveSouth(i,j)] = 0.3;
+						T[faceWest(i,j)] = row;
+						
+						row[moveWest(i,j)] = 0.3;
+						row[moveSouth(i,j)] = 0.7;
+						T[faceSouth(i,j)] = row;
+					}
+					
+				}
+				else 
+					if(i == rows - 1){
+						//Bottom left corner
+						if(j == 0){
+							row[moveEast(i,j)] = row[moveNorth(i,j)] = 0.5;
+							T[faceSouth(i,j)] = T[faceWest(i,j)] = row;
+							
+							row[moveEast(i,j)] = 0.3;
+							row[moveNorth(i,j)] = 0.7;
+							T[faceNorth(i,j)] = row;
+							
+							row[moveNorth(i,j)] = 0.3;
+							row[moveEast(i,j)] = 0.7;
+							T[faceEast(i,j)] = row;
+						}
+						if(j == cols - 1){
+							row[moveWest(i,j)] = row[moveNorth(i,j)] = 0.5;
+							T[faceSouth(i,j)] = T[faceEast(i,j)] = row;
+							
+							row[moveWest(i,j)] = 0.3;
+							row[moveNorth(i,j)] = 0.7;
+							T[faceNorth(i,j)] = row;
+							
+							row[moveNorth(i,j)] = 0.3;
+							row[moveWest(i,j)] = 0.7;
+							T[faceWest(i,j)] = row;
+						}
+					}
+	 */
+	private void generateCorners(double[][] T){
+		double[] row = new double[rows*cols*head];
+		int i,j;
+		
+		//Top left
+		i = 0;
+		j = 0;
+	
+		row[moveEast(i,j)] = row[moveSouth(i,j)] = 0.5;
+		System.arraycopy(row,0,T[faceNorth(i,j)],0,row.length);
+		System.arraycopy(row,0,T[faceWest(i,j)],0,row.length);
+		
+		row[moveEast(i,j)] = 0.3;
+		row[moveSouth(i,j)] = 0.7;
+		System.arraycopy(row,0,T[faceSouth(i,j)],0,row.length);
+		
+		row[moveSouth(i,j)] = 0.3;
+		row[moveEast(i,j)] = 0.7;
+		System.arraycopy(row,0,T[faceEast(i,j)],0,row.length);		
+		
+		row[moveEast(i,j)] = row[moveSouth(i,j)] = 0;
+		//Top right
+		j = cols - 1;
+		
+		row[moveSouth(i,j)] = row[moveWest(i,j)] = 0.5;
+		System.arraycopy(row,0,T[faceNorth(i,j)],0,row.length);
+		System.arraycopy(row,0,T[faceEast(i,j)],0,row.length);
+		
+		row[moveWest(i,j)] = 0.7;
+		row[moveSouth(i,j)] = 0.3;
+		System.arraycopy(row,0,T[faceWest(i,j)],0,row.length);
+		
+		row[moveWest(i,j)] = 0.3;
+		row[moveSouth(i,j)] = 0.7;
+		System.arraycopy(row,0,T[faceSouth(i,j)],0,row.length);
+		
+
+		row[moveWest(i,j)] = row[moveSouth(i,j)] = 0;
+		//Bottom right
+		i = rows - 1;
+		
+		row[moveWest(i,j)] = row[moveNorth(i,j)] = 0.5;
+		System.arraycopy(row,0,T[faceSouth(i,j)],0,row.length);
+		System.arraycopy(row,0,T[faceEast(i,j)],0,row.length);
+		
+		row[moveWest(i,j)] = 0.3;
+		row[moveNorth(i,j)] = 0.7;
+		System.arraycopy(row,0,T[faceNorth(i,j)],0,row.length);
+		
+		row[moveNorth(i,j)] = 0.3;
+		row[moveWest(i,j)] = 0.7;
+		System.arraycopy(row,0,T[faceWest(i,j)],0,row.length);
+		
+		
+		row[moveWest(i,j)] = row[moveNorth(i,j)] = 0;
+		//Bottom left
+		j = 0;
+		
+		row[moveEast(i,j)] = row[moveNorth(i,j)] = 0.5;
+		System.arraycopy(row,0,T[faceSouth(i,j)],0,row.length);
+		System.arraycopy(row,0,T[faceWest(i,j)],0,row.length);
+		
+		row[moveEast(i,j)] = 0.3;
+		row[moveNorth(i,j)] = 0.7;
+		System.arraycopy(row,0,T[faceNorth(i,j)],0,row.length);
+		
+		row[moveNorth(i,j)] = 0.3;
+		row[moveEast(i,j)] = 0.7;
+		System.arraycopy(row,0,T[faceEast(i,j)],0,row.length);
+		
+	}
+	private void generateWalls(double[][] T){
+		int i,j;
+		double[] row = new double[rows*cols*head];
+		
+		i = 0;
+		for(j = 1; j < cols - 1; j++){
+			row[moveEast(i,j)] = row[moveSouth(i,j)] = row[moveWest(i,j)] = 0.33;
+			System.arraycopy(row,0,T[faceNorth(i,j)],0,row.length);
+			
+			row[moveWest(i,j)] = row[moveSouth(i,j)] = 0.15;
+			row[moveEast(i,j)] = 0.7;
+			System.arraycopy(row,0,T[faceEast(i,j)],0,row.length);
+			
+			row[moveWest(i,j)] = row[moveEast(i,j)] = 0.15;
+			row[moveSouth(i,j)] = 0.7;
+			System.arraycopy(row,0,T[faceSouth(i,j)],0,row.length);
+			
+			row[moveEast(i,j)] = row[moveSouth(i,j)] = 0.15;
+			row[moveWest(i,j)] = 0.7;
+			System.arraycopy(row,0,T[faceWest(i,j)],0,row.length);
+
+			row[moveEast(i,j)] = row[moveSouth(i,j)] = row[moveWest(i,j)] = 0;
+		}
+		
+		i = rows -1;
+		for(j = 1; j < cols - 1; j++){
+			row[moveEast(i,j)] = row[moveNorth(i,j)] = row[moveWest(i,j)] = 0.33;
+			System.arraycopy(row,0,T[faceSouth(i,j)],0,row.length);
+			
+			row[moveWest(i,j)] = row[moveNorth(i,j)] = 0.15;
+			row[moveEast(i,j)] = 0.7;
+			System.arraycopy(row,0,T[faceEast(i,j)],0,row.length);
+			
+			row[moveWest(i,j)] = row[moveEast(i,j)] = 0.15;
+			row[moveNorth(i,j)] = 0.7;
+			System.arraycopy(row,0,T[faceNorth(i,j)],0,row.length);
+			
+			row[moveEast(i,j)] = row[moveNorth(i,j)] = 0.15;
+			row[moveWest(i,j)] = 0.7;
+			System.arraycopy(row,0,T[faceWest(i,j)],0,row.length);
+
+			row[moveEast(i,j)] = row[moveNorth(i,j)] = row[moveWest(i,j)] = 0;
+		}
+		
+		j = 0;
+		for(i = 1; i < cols - 1; i++){
+			row[moveEast(i,j)] = row[moveSouth(i,j)] = row[moveNorth(i,j)] = 0.33;
+			System.arraycopy(row,0,T[faceWest(i,j)],0,row.length);
+			
+			row[moveNorth(i,j)] = row[moveSouth(i,j)] = 0.15;
+			row[moveEast(i,j)] = 0.7;
+			System.arraycopy(row,0,T[faceEast(i,j)],0,row.length);
+			
+			row[moveNorth(i,j)] = row[moveEast(i,j)] = 0.15;
+			row[moveSouth(i,j)] = 0.7;
+			System.arraycopy(row,0,T[faceSouth(i,j)],0,row.length);
+			
+			row[moveEast(i,j)] = row[moveSouth(i,j)] = 0.15;
+			row[moveNorth(i,j)] = 0.7;
+			System.arraycopy(row,0,T[faceNorth(i,j)],0,row.length);
+
+			row[moveEast(i,j)] = row[moveSouth(i,j)] = row[moveNorth(i,j)] = 0;
+		}
+		
+		j = cols - 1;
+		for(i = 1; i < cols - 1; i++){
+			row[moveWest(i,j)] = row[moveSouth(i,j)] = row[moveNorth(i,j)] = 0.33;
+			System.arraycopy(row,0,T[faceEast(i,j)],0,row.length);
+			
+			row[moveNorth(i,j)] = row[moveSouth(i,j)] = 0.15;
+			row[moveWest(i,j)] = 0.7;
+			System.arraycopy(row,0,T[faceWest(i,j)],0,row.length);
+			
+			row[moveNorth(i,j)] = row[moveWest(i,j)] = 0.15;
+			row[moveSouth(i,j)] = 0.7;
+			System.arraycopy(row,0,T[faceSouth(i,j)],0,row.length);
+			
+			row[moveWest(i,j)] = row[moveSouth(i,j)] = 0.15;
+			row[moveNorth(i,j)] = 0.7;
+			System.arraycopy(row,0,T[faceNorth(i,j)],0,row.length);
+
+			row[moveWest(i,j)] = row[moveSouth(i,j)] = row[moveNorth(i,j)] = 0;
+		}
+	}
 	private void generateT(double[][] T){
 		//double[][] cornerAux = new double[head][rows*cols*head];
 		double[] row = new double[rows*cols*head];
+		int i,j;
 		
-		for(int i  = 0; i < rows; i++){	
-			for(int j = 0; j < cols; j++){
-				//This initializes row to a zeros vector. Maybe could be done at the end of every if
-				row = new double[rows*cols*head];
-				//Left top corner
-				if(i == 0 && j == 0){
-					//Facing wall
-					row[moveEast(i,j)] = row[moveSouth(i,j)] = 0.5;
-					T[faceNorth(i,j)] = T[faceWest(i,j)] = row;
-					//Facing not wall
-					
-					row[moveEast(i,j)] = 0.3;
-					row[moveSouth(i,j)] = 0.7;
-					T[faceSouth(i,j)] = row;
-					
-					row[moveSouth(i,j)] = 0.3;
-					row[moveEast(i,j)] = 0.7;
-					T[faceEast(i,j)] = row;
-				}
-				else 
-				//Right top corner
-				if(i == 0 && j == cols - 1 ){
-					row[moveSouth(i,j)] = row[moveWest(i,j)] = 0.5;
-					T[faceNorth(i,j)] = T[faceEast(i,j)] = row;
-					
-					row[moveWest(i,j)] = 0.7;
-					row[moveSouth(i,j)] = 0.3;
-					T[faceWest(i,j)] = row;
-					
-					row[moveWest(i,j)] = 0.3;
-					row[moveSouth(i,j)] = 0.7;
-					T[faceSouth(i,j)] = row;
-				}
-				else
-				if(i == rows - 1 && j == 0){
-					row[moveEast(i,j)] = row[moveNorth(i,j)] = 0.5;
-					T[faceSouth(i,j)] = T[faceWest(i,j)] = row;
-					
-					row[moveEast(i,j)] = 0.3;
-					row[moveNorth(i,j)] = 0.7;
-					T[faceNorth(i,j)] = row;
-					
-					row[moveNorth(i,j)] = 0.3;
-					row[moveEast(i,j)] = 0.7;
-					T[faceEast(i,j)] = row;
-				}
-				else
-				if(i == rows - 1 && j == cols - 1){
-					row[moveWest(i,j)] = row[moveNorth(i,j)] = 0.5;
-					T[faceSouth(i,j)] = T[faceEast(i,j)] = row;
-					
-					row[moveWest(i,j)] = 0.3;
-					row[moveNorth(i,j)] = 0.7;
-					T[faceNorth(i,j)] = row;
-					
-					row[moveNorth(i,j)] = 0.3;
-					row[moveWest(i,j)] = 0.7;
-					T[faceWest(i,j)] = row;
-				}
+		generateCorners(T);
+		generateWalls(T);
+		
+		
+		
+		//Middle points
+		for(i  = 1; i < rows - 1; i++){	
+			for(j = 1; j < cols - 1; j++){
+				//This initializes row to a zeros vector. Maybe could be done at the end of every if				
+				row[moveEast(i,j)] = row[moveSouth(i,j)] = row[moveWest(i,j)] = 0.1;
+				row[moveNorth(i,j)] = 0.7;
+				System.arraycopy(row,0,T[faceNorth(i,j)],0,row.length);
+				
+				row[moveNorth(i,j)] = row[moveWest(i,j)] = row[moveSouth(i,j)] = 0.1;
+				row[moveEast(i,j)] = 0.7;
+				System.arraycopy(row,0,T[faceEast(i,j)],0,row.length);
+				
+				row[moveNorth(i,j)] = row[moveEast(i,j)] = row[moveWest(i,j)] = 0.1;
+				row[moveSouth(i,j)] = 0.7;
+				System.arraycopy(row,0,T[faceSouth(i,j)],0,row.length);
+				
+				row[moveNorth(i,j)] = row[moveEast(i,j)] = row[moveSouth(i,j)] = 0.1;
+				row[moveWest(i,j)] = 0.7;
+				System.arraycopy(row,0,T[faceWest(i,j)],0,row.length);
+				
+				row[moveNorth(i,j)] = row[moveEast(i,j)] = row[moveSouth(i,j)] = row[moveWest(i,j)] = 0;
 			}
 		}
 	}
@@ -256,9 +452,20 @@ public class HMMPredictor implements EstimatorInterface {
 	/*public double[][] getO(){
 		return O;
 	}
+	
+	public double[][] getT(){
+		return T;
+	}
+	
+	public static void printArray(double matrix[][]) {
+	    for (double[] row : matrix) 
+	        System.out.println(Arrays.toString(row));       
+	}
 	static public void main(String args[]){
-		HMMPredictor pred = new HMMPredictor(4, 4);
-		double[][] O = pred.getO();
-		System.out.print(O);
+		HMMPredictor pred = new HMMPredictor(3, 3);
+		//double[][] O = pred.getO();
+		double[][] T = pred.getT();
+		printArray(T);
+		System.out.print(T);
 	}*/
 }
