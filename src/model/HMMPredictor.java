@@ -345,12 +345,10 @@ public class HMMPredictor implements EstimatorInterface {
 		
 //Based on stack overflow code proposal
 	    random = new Random();
-	    int totalSum = 100;
-
-
-        int index = random.nextInt(totalSum);
+        int index = random.nextInt(100);
         int sum = 0;
         int i=0;
+        
         while(sum < index ) {
              sum = sum + movs.get(i++).relativeProb();
         }
