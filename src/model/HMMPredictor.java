@@ -250,12 +250,12 @@ public class HMMPredictor implements EstimatorInterface {
 	}
 	
 	
-	public double[][] getO(){
+	/*public double[][] getO(){
 		return O;
 	}
 	static public void main(String args[]){
 		HMMPredictor pred = new HMMPredictor(4, 4);
 		double[][] O = pred.getO();
 		System.out.print(O);
-	}
+	}*/
 }
