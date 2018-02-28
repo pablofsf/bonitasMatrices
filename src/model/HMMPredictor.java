@@ -1,5 +1,11 @@
 package model;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.DoubleStream;
+
 import control.EstimatorInterface;
 
 public class HMMPredictor implements EstimatorInterface {
@@ -154,6 +160,17 @@ public class HMMPredictor implements EstimatorInterface {
 				}
 			}
 		}
+		
+		//Here we initialize the sensor error matrix
+		List<Object> Olist; 
+		for(int i = 0; i < rows; i++){
+			for(int j = 0; j < cols; j++){
+				for(int h = 0; h < head; h++){
+					Olist = DoubleStream.of(O[mapO(i,j)]).boxed().collect(Collectors.toList());
+					O[rows*cols][mapT(i,j,h)] = 0.9 - 0.05*Collections.frequency(Olist, new Double(0.05))/4 - 0.025*Collections.frequency(Olist, new Double(0.025))/4;  
+				}
+			}
+		}
 	}
 
 	@Override
@@ -233,12 +250,12 @@ public class HMMPredictor implements EstimatorInterface {
 	}
 	
 	
-	/*public double[][] getO(){
+	public double[][] getO(){
 		return O;
 	}
 	static public void main(String args[]){
 		HMMPredictor pred = new HMMPredictor(4, 4);
 		double[][] O = pred.getO();
 		System.out.print(O);
-	}*/
+	}
 }
