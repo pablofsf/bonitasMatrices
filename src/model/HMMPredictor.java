@@ -5,13 +5,15 @@ import control.EstimatorInterface;
 public class HMMPredictor implements EstimatorInterface {
 
 	private int rows,cols,head;
-	private double[][] T,O[];
+	private double[][] T,O;
 	public HMMPredictor(int rows, int cols){
 		this.rows = rows;
 		this.cols = cols;
 		this.head = 4;
 		T = new double[rows*cols*head][rows*cols*head];
-		O = new double[rows*cols +1][rows*cols*head][rows*cols*head];
+		//Each of the Os matrices is represented by an array [rows*cols*head].
+		//As we have [rows*cols +1] Os, we store the info in a matrix.
+		O = new double[rows*cols +1][rows*cols*head];
 		generateT(T);
 		generateOs(O);
 	}
@@ -21,32 +23,35 @@ public class HMMPredictor implements EstimatorInterface {
 	}
 	
 	private int mapT(int row, int col, int head){
-		return col*4 + row*col*4 + head;
+		return col*4 + row*this.cols*4 + head;
+	}
+	private int mapO(int row, int col){
+		return col + row*this.cols;
 	}
 	
 	private int moveNorth(int row, int col){
-		return col*4 + (row+1)*col*4;
+		return col*4 + (row-1)*this.cols*4;
 	}
 	private int moveEast(int row, int col){
-		return (col+1)*4 + row*col*4 + 1;
+		return (col+1)*4 + row*this.cols*4 + 1;
 	}
 	private int moveSouth(int row, int col){
-		return col*4 + (row-1)*col*4 + 2;
+		return col*4 + (row+1)*this.cols*4 + 2;
 	}
 	private int moveWest(int row, int col){
-		return (col-1)*4 + row*col*4 + 3;
+		return (col-1)*4 + row*this.cols*4 + 3;
 	}
 	private int faceNorth(int row, int col){
-		return col*4 + row*col*4;
+		return col*4 + row*this.cols*4;
 	}
 	private int faceEast(int row, int col){
-		return col*4 + row*col*4 + 1;
+		return col*4 + row*this.cols*4 + 1;
 	}
 	private int faceSouth(int row, int col){
-		return col*4 + row*col*4 + 2;
+		return col*4 + row*this.cols*4 + 2;
 	}
 	private int faceWest(int row, int col){
-		return col*4 + row*col*4 + 3;
+		return col*4 + row*this.cols*4 + 3;
 	}
 	
 	private void generateT(double[][] T){
@@ -55,6 +60,7 @@ public class HMMPredictor implements EstimatorInterface {
 		
 		for(int i  = 0; i < rows; i++){	
 			for(int j = 0; j < cols; j++){
+				//This initializes row to a zeros vector. Maybe could be done at the end of every if
 				row = new double[rows*cols*head];
 				//Left top corner
 				if(i == 0 && j == 0){
@@ -115,8 +121,39 @@ public class HMMPredictor implements EstimatorInterface {
 		}
 	}
 	
-	private void generateOs(double[][][] O){
-		
+	private void generateOs(double[][] O){
+		int diffX, diffY;
+		//First two done to iterate through the O matrices
+		for(int Oi = 0; Oi < rows; Oi++){
+			for(int Oj = 0; Oj < cols; Oj++){
+				//Now we start checking each matrix
+				for(int i = 0; i < rows; i++){
+					for(int j = 0; j < cols; j++){
+						//h fors could be removed if we considered it properly in the multiplication
+						diffX = Oi - i;
+						diffY = Oj - j;
+						if(diffX == 0 && diffY == 0){
+							for(int h = 0; h < head; h++){
+								O[mapO(Oi,Oj)][mapT(i,j,h)] = 0.1;
+							}
+						} else
+							if(diffX <= 1 && diffX >= -1 && diffY <= 1 && diffY >= -1){
+								for(int h = 0; h < head; h++){
+									O[mapO(Oi,Oj)][mapT(i,j,h)] = 0.05;
+								}
+							} else 
+								if(diffX <= 2 && diffX >= -2 && diffY <= 2 && diffY >= -2){
+									for(int h = 0; h < head; h++){
+										O[mapO(Oi,Oj)][mapT(i,j,h)] = 0.025;
+									}
+								}else
+									for(int h = 0; h < head; h++){
+										O[mapO(Oi,Oj)][mapT(i,j,h)] = 0;
+									}
+					}
+				}
+			}
+		}
 	}
 
 	@Override
@@ -194,5 +231,14 @@ public class HMMPredictor implements EstimatorInterface {
 	public double getTProb(int x, int y, int h, int nX, int nY, int nH) {
 		return T[mapT(x,y,h)][mapT(nX,nY,nH)];
 	}
-
+	
+	
+	/*public double[][] getO(){
+		return O;
+	}
+	static public void main(String args[]){
+		HMMPredictor pred = new HMMPredictor(4, 4);
+		double[][] O = pred.getO();
+		System.out.print(O);
+	}*/
 }
