@@ -31,7 +31,7 @@ public class HMMPredictor implements EstimatorInterface {
 		generateOs(O);
 		
 		f = new double[rows*cols*head];
-		Arrays.fill(f,1/(rows*cols));
+		Arrays.fill(f,1/((double)rows*(double)cols*(double)head));
 		
         random = new Random();
         sens = new int[2];
@@ -50,7 +50,10 @@ public class HMMPredictor implements EstimatorInterface {
 		return col*4 + row*this.cols*4 + head;
 	}
 	private int mapO(int row, int col){
-		return col + row*this.cols;
+		if(row < 0 || col < 0)
+			return cols*rows;
+		else
+			return col + row*this.cols;
 	}
 	
 	/*private int move(int row, int col, int h){
@@ -351,8 +354,8 @@ public class HMMPredictor implements EstimatorInterface {
 		
 //Based on stack overflow code proposal
 	    random = new Random();
-        int index = random.nextInt(100);
-        int sum = 0;
+        double index = random.nextDouble()*100;
+        double sum = 0;
         int i=0;
         
         while(sum < index ) {
@@ -363,27 +366,30 @@ public class HMMPredictor implements EstimatorInterface {
 	}
 
 	private void getSensorReading(){
-		double[] currentO = O[mapO(pos[0],pos[1])];
+		//double[] currentO = O[mapO(pos[0],pos[1])];
 		Reading chosenRead;
 		ArrayList<Reading> posReading = new ArrayList<Reading>();
 		double probability = 0;
 		
 		for(int i = 0; i < rows; i++){
 			for(int j = 0; j < cols; j++){
-				probability = 0;
-				for(int h = 0; h < head; h++){
-					if(currentO[mapT(i,j,h)] != 0){
+				probability = O[mapO(i,j)][mapT(pos[0],pos[1],pos[2])];
+				/*for(int h = 0; h < head; h++){
+					if(O[mapT(i,j,h)] != 0){
 						probability += currentO[mapT(i,j,h)];
 					}
-				}
-				posReading.add(new Reading(probability,i,j));
+				}*/
+				if(probability != 0)
+					posReading.add(new Reading(probability,i,j));
 			}
 		}
+		probability = O[rows*cols][mapT(pos[0],pos[1],pos[2])];
+		posReading.add(new Reading(probability,-1,-1));
 		
 		//Based on stack overflow code proposal
 	    random = new Random();
-        int index = random.nextInt(100*4);
-        int sum = 0;
+        double index = random.nextDouble()*100;
+        double sum = 0;
         int i=0;
         
         while(sum < index ) {
