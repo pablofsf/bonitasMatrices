@@ -14,6 +14,7 @@ public class HMMPredictor implements EstimatorInterface {
 	private int rows,cols,head;
 	private double[][] T,O;
 	int[] pos;
+	int[] sens;
 	Random random;
 	
 	public HMMPredictor(int rows, int cols){
@@ -29,6 +30,7 @@ public class HMMPredictor implements EstimatorInterface {
 		generateOs(O);
 		
         random = new Random();
+        sens = new int[2];
 		pos = new int[3];
 		pos[0] = random.nextInt(rows);
 		pos[1] = random.nextInt(cols);
@@ -332,7 +334,7 @@ public class HMMPredictor implements EstimatorInterface {
 	private void move(){
 		double[] moveRow = T[mapT(pos[0],pos[1],pos[2])];
 		Movement choosenMov;
-		ArrayList<Movement> movs = new ArrayList<Movement>();
+		ArrayList<Movement> movs = new ArrayList<Movement>(4);
 		for(int i = 0; i < rows; i++){
 			for(int j = 0; j < cols; j++){
 				for(int h = 0; h < head; h++){
@@ -355,6 +357,37 @@ public class HMMPredictor implements EstimatorInterface {
         choosenMov = movs.get(Math.max(0,i-1));
         pos = choosenMov.getPos();
 	}
+
+	private void getSensorReading(){
+		double[] currentO = O[mapO(pos[0],pos[1])];
+		Reading chosenRead;
+		ArrayList<Reading> posReading = new ArrayList<Reading>();
+		double probability = 0;
+		
+		for(int i = 0; i < rows; i++){
+			for(int j = 0; j < cols; j++){
+				probability = 0;
+				for(int h = 0; h < head; h++){
+					if(currentO[mapT(i,j,h)] != 0){
+						probability += currentO[mapT(i,j,h)];
+					}
+				}
+				posReading.add(new Reading(probability,i,j));
+			}
+		}
+		
+		//Based on stack overflow code proposal
+	    random = new Random();
+        int index = random.nextInt(100*4);
+        int sum = 0;
+        int i=0;
+        
+        while(sum < index ) {
+             sum = sum + posReading.get(i++).relativeProb();
+        }
+        chosenRead = posReading.get(Math.max(0,i-1));
+        sens = chosenRead.getPos();
+	}
 	/*
 	 * should trigger one step of the estimation, i.e., true position, sensor reading and 
 	 * the probability distribution for the position estimate should be updated one step
@@ -375,8 +408,11 @@ public class HMMPredictor implements EstimatorInterface {
 	 */
 	@Override
 	public int[] getCurrentTruePosition() {
-		// TODO Auto-generated method stub
-		return null;
+		int[] posXY = new int[2];
+		posXY[0] = pos[0];
+		posXY[1] = pos[1];
+		
+		return posXY;
 	}
 
 	/*
@@ -385,8 +421,7 @@ public class HMMPredictor implements EstimatorInterface {
 	 */
 	@Override
 	public int[] getCurrentReading() {
-		// TODO Auto-generated method stub
-		return null;
+		return sens;
 	}
 
 	/*
