@@ -24,7 +24,7 @@ public class HMMPredictor implements EstimatorInterface {
 		this.head = 4;
 		
 		T = new double[rows*cols*head][rows*cols*head];
-		//Each of the Os matrices is represented by an array [rows*cols*head].
+		//Each of the Os matrices is represented by an array [rows*cols*head]. head could be avoided, but helps making multiplication simpler
 		//As we have [rows*cols +1] Os, we store the info in a matrix.
 		O = new double[rows*cols +1][rows*cols*head];
 		generateT(T);
@@ -41,32 +41,32 @@ public class HMMPredictor implements EstimatorInterface {
 		pos[2] = random.nextInt(head);
 				
 	}
+	
 	@Override
 	public int getNumRows() {
 		return this.rows;
 	}
+	@Override
+	public int getNumCols() {
+		return this.cols;
+	}
+	@Override
+	public int getNumHead() {
+		return this.head;
+	}
 	
+	//Find the corresponding element in one of the arrays rows*cols*head
 	private int mapT(int row, int col, int head){
 		return col*4 + row*this.cols*4 + head;
 	}
+	//Find the proper matrix O
 	private int mapO(int row, int col){
 		if(row < 0 || col < 0)
 			return cols*rows;
 		else
 			return col + row*this.cols;
 	}
-	
-	/*private int move(int row, int col, int h){
-		if(h == 0)
-			row = row - 1;//return moveNorth(row,col);
-		if(h == 1)
-			col = col + 1;
-		if(h == 2)
-			row = row + 1;
-		if(h == 3)
-			col = col - 1;
-		return mapT(row,col,h);
-	}*/
+
 	private int moveNorth(int row, int col){
 		return col*4 + (row-1)*this.cols*4;
 	}
@@ -167,6 +167,7 @@ public class HMMPredictor implements EstimatorInterface {
 		int i,j;
 		double[] row = new double[rows*cols*head];
 		
+		//Top row
 		i = 0;
 		for(j = 1; j < cols - 1; j++){
 			row[moveEast(i,j)] = row[moveSouth(i,j)] = row[moveWest(i,j)] = 0.33;
@@ -187,6 +188,7 @@ public class HMMPredictor implements EstimatorInterface {
 			row[moveEast(i,j)] = row[moveSouth(i,j)] = row[moveWest(i,j)] = 0;
 		}
 		
+		//Bottom row
 		i = rows -1;
 		for(j = 1; j < cols - 1; j++){
 			row[moveEast(i,j)] = row[moveNorth(i,j)] = row[moveWest(i,j)] = 0.33;
@@ -207,6 +209,7 @@ public class HMMPredictor implements EstimatorInterface {
 			row[moveEast(i,j)] = row[moveNorth(i,j)] = row[moveWest(i,j)] = 0;
 		}
 		
+		//Left column
 		j = 0;
 		for(i = 1; i < cols - 1; i++){
 			row[moveEast(i,j)] = row[moveSouth(i,j)] = row[moveNorth(i,j)] = 0.33;
@@ -227,6 +230,7 @@ public class HMMPredictor implements EstimatorInterface {
 			row[moveEast(i,j)] = row[moveSouth(i,j)] = row[moveNorth(i,j)] = 0;
 		}
 		
+		//Right column
 		j = cols - 1;
 		for(i = 1; i < cols - 1; i++){
 			row[moveWest(i,j)] = row[moveSouth(i,j)] = row[moveNorth(i,j)] = 0.33;
@@ -248,19 +252,14 @@ public class HMMPredictor implements EstimatorInterface {
 		}
 	}
 	private void generateT(double[][] T){
-		//double[][] cornerAux = new double[head][rows*cols*head];
 		double[] row = new double[rows*cols*head];
-		int i,j;
 		
 		generateCorners(T);
 		generateWalls(T);
 		
-		
-		
 		//Middle points
-		for(i  = 1; i < rows - 1; i++){	
-			for(j = 1; j < cols - 1; j++){
-				//This initializes row to a zeros vector. Maybe could be done at the end of every if				
+		for(int i  = 1; i < rows - 1; i++){	
+			for(int j = 1; j < cols - 1; j++){
 				row[moveEast(i,j)] = row[moveSouth(i,j)] = row[moveWest(i,j)] = 0.1;
 				row[moveNorth(i,j)] = 0.7;
 				System.arraycopy(row,0,T[faceNorth(i,j)],0,row.length);
@@ -290,20 +289,19 @@ public class HMMPredictor implements EstimatorInterface {
 				//Now we start checking each matrix
 				for(int i = 0; i < rows; i++){
 					for(int j = 0; j < cols; j++){
-						//h fors could be removed if we considered it properly in the multiplication
-						diffX = Oi - i;
-						diffY = Oj - j;
+						diffX = Math.abs(Oi - i);
+						diffY = Math.abs(Oj - j);
 						if(diffX == 0 && diffY == 0){
 							for(int h = 0; h < head; h++){
 								O[mapO(Oi,Oj)][mapT(i,j,h)] = 0.1;
 							}
 						} else
-							if(diffX <= 1 && diffX >= -1 && diffY <= 1 && diffY >= -1){
+							if(diffX <= 1 && diffY <= 1){
 								for(int h = 0; h < head; h++){
 									O[mapO(Oi,Oj)][mapT(i,j,h)] = 0.05;
 								}
 							} else 
-								if(diffX <= 2 && diffX >= -2 && diffY <= 2 && diffY >= -2){
+								if(diffX <= 2 && diffY <= 2){
 									for(int h = 0; h < head; h++){
 										O[mapO(Oi,Oj)][mapT(i,j,h)] = 0.025;
 									}
@@ -316,7 +314,7 @@ public class HMMPredictor implements EstimatorInterface {
 			}
 		}
 		
-		//Here we initialize the sensor error matrix
+		//Initialize the sensor error matrix
 		List<Object> Olist; 
 		for(int i = 0; i < rows; i++){
 			for(int j = 0; j < cols; j++){
@@ -328,31 +326,23 @@ public class HMMPredictor implements EstimatorInterface {
 		}
 	}
 
-	@Override
-	public int getNumCols() {
-		return this.cols;
-	}
-
-	@Override
-	public int getNumHead() {
-		return this.head;
-	}
-
 	private void move(){
-		double[] moveRow = T[mapT(pos[0],pos[1],pos[2])];
+		double[] probCurrentPos = T[mapT(pos[0],pos[1],pos[2])];
 		Movement choosenMov;
 		ArrayList<Movement> movs = new ArrayList<Movement>(4);
+		
 		for(int i = 0; i < rows; i++){
 			for(int j = 0; j < cols; j++){
 				for(int h = 0; h < head; h++){
-					if(moveRow[mapT(i,j,h)] != 0){
-						movs.add(new Movement(moveRow[mapT(i,j,h)],i,j,h));
+					if(probCurrentPos[mapT(i,j,h)] != 0){
+						movs.add(new Movement(probCurrentPos[mapT(i,j,h)],i,j,h));
 					}
 				}
 			}
 		}
 		
-//Based on stack overflow code proposal
+		//Choose movement from probabilities
+		//Based on stack overflow code proposal
 	    random = new Random();
         double index = random.nextDouble()*100;
         double sum = 0;
@@ -366,7 +356,6 @@ public class HMMPredictor implements EstimatorInterface {
 	}
 
 	private void getSensorReading(){
-		//double[] currentO = O[mapO(pos[0],pos[1])];
 		Reading chosenRead;
 		ArrayList<Reading> posReading = new ArrayList<Reading>();
 		double probability = 0;
@@ -374,11 +363,7 @@ public class HMMPredictor implements EstimatorInterface {
 		for(int i = 0; i < rows; i++){
 			for(int j = 0; j < cols; j++){
 				probability = O[mapO(i,j)][mapT(pos[0],pos[1],pos[2])];
-				/*for(int h = 0; h < head; h++){
-					if(O[mapT(i,j,h)] != 0){
-						probability += currentO[mapT(i,j,h)];
-					}
-				}*/
+				
 				if(probability != 0)
 					posReading.add(new Reading(probability,i,j));
 			}
@@ -402,21 +387,21 @@ public class HMMPredictor implements EstimatorInterface {
 	private void posEstimate(){
 		//What we need to do is ft+1 = O*T'*ft;
 		double[] currentO = O[mapO(sens[0],sens[1])], newf = new double[rows*cols*head];
-		double[][] OT = new double[rows*cols*head][rows*cols*head];
-		double sum, sumf = 0, alpha;
+		double[][] OTaux = new double[rows*cols*head][rows*cols*head];
+		double sumf = 0, alpha;
 		
 		for(int i = 0; i < rows*cols*head; i++){
 			for(int j = 0; j < rows*cols*head; j++){
-				OT[i][j] = T[j][i]*currentO[i];
+				OTaux[i][j] = T[j][i]*currentO[i];
 			}
 		}
 		
 		for(int i = 0; i < rows*cols*head; i++){
-			sum = 0;
+			newf[i] = 0;
 			for(int j = 0; j < rows*cols*head; j++){
-				sum += OT[i][j]*f[j];
+				newf[i] += OTaux[i][j]*f[j];
 			}
-			sumf += newf[i] = sum;
+			sumf += newf[i];
 		}
 		
 		//Corrrect f values
@@ -502,25 +487,4 @@ public class HMMPredictor implements EstimatorInterface {
 	public double getTProb(int x, int y, int h, int nX, int nY, int nH) {
 		return T[mapT(x,y,h)][mapT(nX,nY,nH)];
 	}
-	
-	
-	/*public double[][] getO(){
-		return O;
-	}
-	
-	public double[][] getT(){
-		return T;
-	}
-	
-	public static void printArray(double matrix[][]) {
-	    for (double[] row : matrix) 
-	        System.out.println(Arrays.toString(row));       
-	}
-	static public void main(String args[]){
-		HMMPredictor pred = new HMMPredictor(3, 3);
-		//double[][] O = pred.getO();
-		double[][] T = pred.getT();
-		printArray(T);
-		System.out.print(T);
-	}*/
 }
