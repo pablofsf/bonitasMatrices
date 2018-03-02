@@ -366,10 +366,15 @@ public class HMMPredictor implements EstimatorInterface {
         double sum = 0;
         int i=0;
         
-        while(sum < index ) {
-             sum = sum + movs.get(i++).relativeProb();
+        try{
+        	while(sum < index ) {
+        		sum = sum + movs.get(i++).relativeProb();
+        	}
+            choosenMov = movs.get(Math.max(0,i-1));
         }
-        choosenMov = movs.get(Math.max(0,i-1));
+        catch(IndexOutOfBoundsException e){
+        	choosenMov = movs.get(movs.size()-1);
+        }
         pos = choosenMov.getPos();
 	}
 
@@ -395,10 +400,15 @@ public class HMMPredictor implements EstimatorInterface {
         double sum = 0;
         int i=0;
         
-        while(sum < index ) {
-             sum = sum + posReading.get(i++).relativeProb();
+        try{
+        	while(sum < index ) {
+        		sum = sum + posReading.get(i++).relativeProb();
+        	}
+            chosenRead = posReading.get(Math.max(0,i-1));
         }
-        chosenRead = posReading.get(Math.max(0,i-1));
+        catch(IndexOutOfBoundsException e){
+        	chosenRead = posReading.get(posReading.size() - 1);
+        }
         sens = chosenRead.getPos();
 	}
 	
